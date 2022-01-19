@@ -1,0 +1,512 @@
+#include "./GameInfo.h"
+#include "./OnitamaBot/Round.h"
+
+using namespace std;
+
+void newGame()
+{
+	int choice;
+	cout << "X starts first.\nPlace the corresponding numbers of the 5 cards in play, side by side, in this order: X's first card, X's second card, turn card, O's first card, O's second card.\nReference:\n00: Boar\n01: Cobra\n02: Crab\n03: Crane\n04: Dragon\n05: Eel\n06: Elephant\n07: Frog\n08: Goose\n09: Horse\n10: Mantis\n11: Monkey\n12: Ox\n13: Rabbit\n14: Rooster\n15: Tiger\nExample: X starts with Boar (00) and Cobra (01), O starts with Crane (03) and Dragon (04). X always starts first, so the turn card, Crab (03) belongs to X. The input is thus: 0001020304.\n";
+	cin >> choice;
+	for (short i = 0; i < 5; ++i)
+		cardList[i] = new Card((int)(choice / pow(10, 8 - i * 2)) % 100);
+	
+	gameState *pos = new gameState();
+	pos->Oturn = false;
+	pos->parent = nullptr;
+	pos->position[0] = 0;
+	pos->position[1] = 1;
+	pos->position[2] = 2;
+	pos->position[3] = 3;
+	pos->position[4] = 4;
+	pos->position[5] = 20;
+	pos->position[6] = 21;
+	pos->position[7] = 22;
+	pos->position[8] = 23;
+	pos->position[9] = 24;
+	pos->position[10] = 0;
+	pos->position[11] = 1;
+	pos->position[12] = 2;
+	pos->position[13] = 3;
+	pos->position[14] = 4;
+	currentState = pos;
+	//checkMoves(currentState);
+}
+
+inline string print(gameState state)
+{
+	string result = "";
+	for (auto i : state.position)
+		result += to_string(i) + ", ";
+	return result;
+}
+
+void printBoard(gameState state)
+{
+	cout << "_______\n";
+	for (short y = 0; y < 5; ++y)
+	{
+		cout << "|";
+		for (short x = 0; x < 5; ++x)
+		{
+			short i = 0;
+			for (; i < 10; ++i)
+			{
+				if (state.position[i] == (4 - y) * 5 + x)
+				{
+					if (i < 5)
+					{
+						if (i == 2)
+							cout << "X";
+						else cout << "x";
+					}
+					else if (i == 7)
+						cout << "O";
+					else cout << "o";
+					break;
+				}
+			}
+			if (i == 10)
+				cout << " ";
+		}
+		cout << "|\n";
+	}
+	cout << "_______";
+}
+
+void treeDump()
+{
+	/*vector<vector<gameState *>::iterator> stack;
+	//find the root
+	gameState *curNode = currentState;
+	while (curNode->parent)
+		curNode = curNode->parent;
+	curNode->parent = new gameState();
+	curNode->parent->children.push_back(curNode);
+	curNode = curNode->parent;
+	stack.push_back(curNode->children.begin());
+	//print root
+	//cout << *stack.back() << "\n";
+	while (!stack.empty())
+	{
+		//print 1st children
+		for (vector<gameState *>::iterator i = (*stack.back())->children.begin(); i != (*stack.back())->children.end(); ++i)
+		{
+			for (short k = 1; k < stack.size(); ++k)
+				cout << "| ";
+			cout << "|-" << *i << "\n";
+			stack.push_back(i);
+			++i;
+			break;
+		}
+		stack.pop_back();
+	}*/
+	//go down, right, then up
+	vector<short> stack;
+	//find the root
+	gameState *curNode = currentState;
+	while (curNode->parent)
+		curNode = curNode->parent;
+	do
+	{
+		//print
+		for (short k = 0; k < stack.size(); ++k)
+			cout << "| ";
+		cout << "|-" << print(*curNode) << "\n";
+		/*for (auto i : stack)
+			cout << i << ">";
+		cout << "\n";*/
+		//go down
+		if (!curNode->children.empty())
+		{
+			curNode = curNode->children[0];
+			stack.push_back(1);
+		}
+		else
+		{
+			while (curNode->parent->children.size() == stack.back())
+			{
+				//go up
+				curNode = curNode->parent;
+				if (stack.size() == 1)
+					return;
+				stack.pop_back();
+			}
+			//go right
+			curNode = curNode->parent->children[stack.back()];
+			++stack.back();
+		}
+	} while (!stack.empty());
+}
+
+short checkWin(gameState *curState)
+{
+	if (curState->position[7] < 0)
+	{
+		//cout << "X Stone.";
+		return 1;
+	}
+	else if (curState->position[2] == 22)
+	{
+		//cout << "X Stream.";
+		return 1;
+	}
+	else if (curState->position[2] < 0)
+	{
+		//cout << "O Stone.";
+		return -1;
+	}
+	else if (curState->position[7] < 2)
+	{
+		//cout << "O Stream.";
+		return -1;
+	}
+	else return 0;
+}
+
+void checkMoves(gameState *curState)
+{
+	//for each piece
+	for (short i = 0; i < 5; ++i)
+	{
+		//skip if dead (-1)
+		if (curState->position[i + curState->Oturn * 5] < 0)
+			continue;
+		//for each possible move from the 1st card
+		for (short j = 0; j < cardList[curState->position[10 + curState->Oturn * 3]]->moveList.size(); ++j)
+		{
+			short result = curState->position[i + curState->Oturn * 5] - (curState->Oturn * 2 - 1) * cardList[curState->position[10 + curState->Oturn * 3]]->moveList[j];
+			//if piece goes out of bounds vertically
+			if (result < 0 || result > 24)
+				continue;
+			//if piece lands on allies
+			short k = 0;
+			for (; k < 5; ++k)
+			{
+				if (k == i)
+					continue;
+				if (curState->position[k + curState->Oturn * 5] == result)
+					break;
+			}
+			if (k != 5)
+				continue;
+			//if piece goes out of bounds horizontally
+			short horizontal = (curState->position[i + curState->Oturn * 5] % 5) - (curState->Oturn * 2 - 1) * (((((cardList[curState->position[10 + curState->Oturn * 3]]->moveList[j] + 2) % 5) - 4) % 5) + 2);
+			if (horizontal < 0 || horizontal > 4)
+				continue;
+			//if execution reaches, this move is legal
+			gameState *pos = new gameState();
+			pos->Oturn = !curState->Oturn;
+			pos->parent = curState;
+			pos->score = 100;
+			for (k = 0; k < 15; ++k)
+				pos->position[k] = curState->position[k];
+			pos->position[i + curState->Oturn * 5] = result;
+			for (k = 5; k < 10; ++k)
+				if (pos->position[k - curState->Oturn * 5] == result)
+				{
+					pos->position[k - curState->Oturn * 5] = -1;
+					break;
+				}
+			short swapCard = pos->position[12];
+			pos->position[12] = pos->position[10 + curState->Oturn * 3];
+			pos->position[10 + curState->Oturn * 3] = swapCard;
+			curState->children.push_back(pos);
+			//cout << curState->children.size() - 1 << ": Left\n";
+			//printBoard(*pos);
+			cout << curState->children.size() - 1 << "\n";
+		}
+		//for each possible move from the 2nd card
+		for (short j = 0; j < cardList[curState->position[11 + curState->Oturn * 3]]->moveList.size(); ++j)
+		{
+			short result = curState->position[i + curState->Oturn * 5] - (curState->Oturn * 2 - 1) * cardList[curState->position[11 + curState->Oturn * 3]]->moveList[j];
+			//if piece goes out of bounds vertically
+			if (result < 0 || result > 24)
+				continue;
+			//if piece lands on allies
+			short k = 0;
+			for (; k < 5; ++k)
+			{
+				if (k == i)
+					continue;
+				if (curState->position[k + curState->Oturn * 5] == result)
+					break;
+			}
+			if (k != 5)
+				continue;
+			//if piece goes out of bounds horizontally
+			short horizontal = (curState->position[i + curState->Oturn * 5] % 5) - (curState->Oturn * 2 - 1) * (((((cardList[curState->position[11 + curState->Oturn * 3]]->moveList[j] + 2) % 5) - 4) % 5) + 2);
+			if (horizontal < 0 || horizontal > 4)
+				continue;
+			//if execution reaches, this move is legal
+			gameState *pos = new gameState();
+			pos->Oturn = !curState->Oturn;
+			pos->parent = curState;
+			pos->score = 100;
+			for (k = 0; k < 15; ++k)
+				pos->position[k] = curState->position[k];
+			pos->position[i + curState->Oturn * 5] = result;
+			for (k = 5; k < 10; ++k)
+				if (pos->position[k - curState->Oturn * 5] == result)
+				{
+					pos->position[k - curState->Oturn * 5] = -1;
+					break;
+				}
+			short swapCard = pos->position[12];
+			pos->position[12] = pos->position[11 + curState->Oturn * 3];
+			pos->position[11 + curState->Oturn * 3] = swapCard;
+			curState->children.push_back(pos);
+			//cout << curState->children.size() - 1 << ": Right\n";
+			//printBoard(*pos);
+			cout << curState->children.size() - 1 << "\n";
+		}
+	}
+
+
+
+	queueControl.lock();
+
+	for (auto i : curState->children)
+
+		if (!checkWin(i))
+
+			jobQueue.push(i);
+
+	queueControl.unlock();
+}
+
+gameState *checkMovesMonteCarlo(gameState *curState)
+{
+	unsigned short depth = 0;
+	vector<gameState> legalMoves;
+	gameState chosenPos = *curState;
+	short branch;
+	double weight = 1;
+	while (1)
+	{
+		//for each piece
+		for (short i = 0; i < 5; ++i)
+		{
+			//skip if dead (-1)
+			if (chosenPos.position[i + chosenPos.Oturn * 5] < 0)
+				continue;
+			//for each possible move from the 1st card
+			for (short j = 0; j < cardList[chosenPos.position[10 + chosenPos.Oturn * 3]]->moveList.size(); ++j)
+			{
+				short result = chosenPos.position[i + chosenPos.Oturn * 5] - (chosenPos.Oturn * 2 - 1) * cardList[chosenPos.position[10 + chosenPos.Oturn * 3]]->moveList[j];
+				//if piece goes out of bounds vertically
+				if (result < 0 || result > 24)
+					continue;
+				//if piece lands on allies
+				short k = 0;
+				for (; k < 5; ++k)
+				{
+					if (k == i)
+						continue;
+					if (chosenPos.position[k + chosenPos.Oturn * 5] == result)
+						break;
+				}
+				if (k != 5)
+					continue;
+				//if piece goes out of bounds horizontally
+				short horizontal = (chosenPos.position[i + chosenPos.Oturn * 5] % 5) - (chosenPos.Oturn * 2 - 1) * (((((cardList[chosenPos.position[10 + chosenPos.Oturn * 3]]->moveList[j] + 2) % 5) - 4) % 5) + 2);
+				if (horizontal < 0 || horizontal > 4)
+					continue;
+				//if execution reaches, this move is legal
+				gameState pos;
+				pos.Oturn = !chosenPos.Oturn;
+				pos.parent = &chosenPos;
+				for (k = 0; k < 15; ++k)
+					pos.position[k] = chosenPos.position[k];
+				pos.position[i + chosenPos.Oturn * 5] = result;
+				for (k = 5; k < 10; ++k)
+					if (pos.position[k - chosenPos.Oturn * 5] == result)
+					{
+						pos.position[k - chosenPos.Oturn * 5] = -1;
+						break;
+					}
+				short swapCard = pos.position[12];
+				pos.position[12] = pos.position[10 + chosenPos.Oturn * 3];
+				pos.position[10 + chosenPos.Oturn * 3] = swapCard;
+				legalMoves.push_back(pos);
+			}
+			//for each possible move from the 2nd card
+			for (short j = 0; j < cardList[chosenPos.position[11 + chosenPos.Oturn * 3]]->moveList.size(); ++j)
+			{
+				short result = chosenPos.position[i + chosenPos.Oturn * 5] - (chosenPos.Oturn * 2 - 1) * cardList[chosenPos.position[11 + chosenPos.Oturn * 3]]->moveList[j];
+				//if piece goes out of bounds vertically
+				if (result < 0 || result > 24)
+					continue;
+				//if piece lands on allies
+				short k = 0;
+				for (; k < 5; ++k)
+				{
+					if (k == i)
+						continue;
+					if (chosenPos.position[k + chosenPos.Oturn * 5] == result)
+						break;
+				}
+				if (k != 5)
+					continue;
+				//if piece goes out of bounds horizontally
+				short horizontal = (chosenPos.position[i + chosenPos.Oturn * 5] % 5) - (chosenPos.Oturn * 2 - 1) * (((((cardList[chosenPos.position[11 + chosenPos.Oturn * 3]]->moveList[j] + 2) % 5) - 4) % 5) + 2);
+				if (horizontal < 0 || horizontal > 4)
+					continue;
+				//if execution reaches, this move is legal
+				gameState pos;
+				pos.Oturn = !chosenPos.Oturn;
+				pos.parent = &chosenPos;
+				for (k = 0; k < 15; ++k)
+					pos.position[k] = chosenPos.position[k];
+				pos.position[i + chosenPos.Oturn * 5] = result;
+				for (k = 5; k < 10; ++k)
+					if (pos.position[k - chosenPos.Oturn * 5] == result)
+					{
+						pos.position[k - chosenPos.Oturn * 5] = -1;
+						break;
+					}
+				short swapCard = pos.position[12];
+				pos.position[12] = pos.position[11 + chosenPos.Oturn * 3];
+				pos.position[11 + chosenPos.Oturn * 3] = swapCard;
+				legalMoves.push_back(pos);
+			}
+		}
+		
+		if (!depth && chosenPos.Oturn == curState->Oturn)
+		{
+			branch = rand() % legalMoves.size();
+			chosenPos = legalMoves[branch];
+		}
+		else chosenPos = legalMoves[rand() % legalMoves.size()];
+		if (chosenPos.Oturn == curState->Oturn)
+			++depth;
+		weight *= legalMoves.size();
+		double result = checkWin(&chosenPos);
+		if (result)
+		{
+			result *= 10000 / weight;
+			//cout << weight << "\n";
+			curState->children[branch]->score += result;
+			return curState->children[branch];
+		}
+		legalMoves.clear();
+	}
+}
+
+void MCSearch(short *stopFlag)
+{
+	checkMoves(currentState);
+	while (*stopFlag)
+	{
+		checkMovesMonteCarlo(currentState);
+	}
+}
+
+int main()
+{
+	Round theRound(false, false, 0);
+	/*newGame();
+	while (1)
+	{
+		if (checkWin(currentState))
+		{
+			eventCode = 1;
+			//for (short i = 0; i < 8; ++i)
+				//worker[i].join();
+			break;
+		}
+		short theMove = 1;
+		thread worker = thread(MCSearch, &theMove);
+		cout << "Computing your moves... Type 0 to stop the calculations or type anything else to view the current scores.\n";
+		while (1)
+		{
+			cin >> theMove;
+			cout << "Scores:\n";
+			for (short i = 0; i < currentState->children.size(); ++i)
+				//cout << (float)i->wins / i->playouts << "% (" << i->wins << "/" << i->playouts << ")\n";
+				cout << i << ": " << currentState->children[i]->score << "\n";
+			if (!theMove)
+				break;
+		}
+		worker.join();
+		if (currentState->Oturn)
+			cout << "O";
+		else cout << "X";
+		cout << ", make your next move:\n";
+		jizz:
+		cin >> theMove;
+		if (theMove == -1)
+		{
+			cout << "Tree dump:\n";
+			treeDump();
+			goto jizz;
+		}
+		else if (theMove == -2)
+		{
+			if (currentState->parent)
+				currentState = currentState->parent;
+			else goto jizz;
+		}
+		else if (theMove == -3)
+		{
+			eventCode = 2;
+			goto jizz;
+		}
+		else if (theMove == -4)
+		{
+			eventCode = 0;
+			goto jizz;
+		}
+		else if (theMove == -5)
+		{
+			goto jizz;
+		}
+		else if (theMove == -6) //the debug command
+		{
+			cout << jobQueue.size() << "\n";
+		}
+		else if (theMove >= currentState->children.size() || theMove < 0)
+		{
+			cout << "Not an option:\n";
+			goto jizz;
+		}
+		else
+		{
+			currentState = currentState->children[theMove];
+		}
+	}
+
+	thread worker[8];
+	bool running[8];
+	for (short i = 0; i < 8; ++i)
+	{
+		gameState *dummyJob = new gameState();
+		dummyJob->prevId = i;
+		jobQueue.push(dummyJob);
+	}
+	for (short i = 0; i < thread::hardware_concurrency(); ++i)
+	{
+		running[i] = true;
+		worker[i] = thread(workerThread, i, &running[0]);
+		//this_thread::sleep_for(chrono::seconds(1));
+	}
+
+	while (running[0])
+	{
+		string lol;
+		cout << "Type command: ";
+		cin >> lol;
+		if (lol == "quit")
+			running[0] = false;
+		/*for (short i = 0; i < thread::hardware_concurrency(); ++i)
+		{
+
+		}*
+	}
+
+	for (short i = 0; i < thread::hardware_concurrency(); ++i)
+	{
+		worker[i].join();
+	}
+	return 0;*/
+}

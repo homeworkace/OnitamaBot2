@@ -1,0 +1,273 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <cmath>
+#include <thread>
+#include <mutex>
+//#include <Windows.h>
+#include <queue>
+
+struct Card
+{
+	Card(short id);
+	std::vector<short> moveList;
+};
+
+Card::Card(short id)
+{
+	switch (id)
+	{
+		case 0:
+			moveList.push_back(-1);
+			moveList.push_back(1);
+			moveList.push_back(5);
+			break;
+		case 1:
+			moveList.push_back(-4);
+			moveList.push_back(-1);
+			moveList.push_back(6);
+			break;
+		case 2:
+			moveList.push_back(-2);
+			moveList.push_back(2);
+			moveList.push_back(5);
+			break;
+		case 3:
+			moveList.push_back(-6);
+			moveList.push_back(-4);
+			moveList.push_back(5);
+			break;
+		case 4:
+			moveList.push_back(-6);
+			moveList.push_back(-4);
+			moveList.push_back(3);
+			moveList.push_back(7);
+			break;
+		case 5:
+			moveList.push_back(-6);
+			moveList.push_back(1);
+			moveList.push_back(4);
+			break;
+		case 6:
+			moveList.push_back(-1);
+			moveList.push_back(1);
+			moveList.push_back(4);
+			moveList.push_back(6);
+			break;
+		case 7:
+			moveList.push_back(-4);
+			moveList.push_back(-2);
+			moveList.push_back(4);
+			break;
+		case 8:
+			moveList.push_back(-4);
+			moveList.push_back(-1);
+			moveList.push_back(1);
+			moveList.push_back(4);
+			break;
+		case 9:
+			moveList.push_back(-5);
+			moveList.push_back(-1);
+			moveList.push_back(5);
+			break;
+		case 10:
+			moveList.push_back(-5);
+			moveList.push_back(4);
+			moveList.push_back(6);
+			break;
+		case 11:
+			moveList.push_back(-6);
+			moveList.push_back(-4);
+			moveList.push_back(4);
+			moveList.push_back(6);
+			break;
+		case 12:
+			moveList.push_back(-5);
+			moveList.push_back(1);
+			moveList.push_back(5);
+			break;
+		case 13:
+			moveList.push_back(-6);
+			moveList.push_back(2);
+			moveList.push_back(6);
+			break;
+		case 14:
+			moveList.push_back(-6);
+			moveList.push_back(-1);
+			moveList.push_back(1);
+			moveList.push_back(6);
+			break;
+		case 15:
+			moveList.push_back(-5);
+			moveList.push_back(10);
+			break;
+	}
+}
+
+//Starting position 0, 1, 2, 3, 4, 20, 21, 22, 23, 24, 0, 1, 2, 3, 4
+/*struct gameState
+{
+	short position[15];
+	bool Oturn;
+	gameState *parent;
+	std::vector<gameState *> children;
+	double score = 100;
+
+	gameState()
+	{
+		score = 0;
+	}
+};*/
+std::mutex queueControl, consoleControl;
+std::mutex childrenLock[40];
+gameState *currentState;
+std::queue<gameState *> jobQueue;
+std::thread worker[8];
+/*
+Event codes are shared with worker threads to keep them updated about what's happening.
+0: Evaluate nodes from the job queue
+1: The job queue is empty or the game has ended. Close the thread.
+2: Work is paused. Have a short rest.
+3: A new move has rendered some enqueued positions unreachable. Sanitise the job queue.
+4: A new move has rendered some positions in the game tree irrelevant. Free them from memory.
+*/
+short eventCode;
+bool debugFlag = false;
+
+Card *cardList[5];
+
+void checkMoves(gameState *curState);
+gameState *checkMovesMonteCarlo(gameState *curState);
+
+void workerThread(int id)
+{
+	while (eventCode != 1)
+	{
+		switch (eventCode)
+		{
+			case 0:
+		{
+			queueControl.lock();
+		gameState *myJob = jobQueue.front();
+		if (!myJob)
+		{
+			eventCode = 1;
+			break;
+		}
+		jobQueue.pop();
+		queueControl.unlock();
+		
+		checkMoves(myJob);
+
+		/*short chosenIndex = rand() % currentState->children.size();
+		gameState *chosenJob = currentState->children[chosenIndex];
+		childrenLock[chosenIndex].lock();
+		chosenJob->score += checkMovesMonteCarlo(chosenJob);
+		childrenLock[chosenIndex].unlock();*/
+		}
+			break;
+			case 1:
+			return;
+			case 2:
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+			continue;
+			break;
+			case 3:
+		{
+			queueControl.lock();
+		gameState *myJob = jobQueue.front();
+		if (myJob->position[0] == -2)
+		{
+			eventCode = 2;
+			queueControl.unlock();
+			break;
+		}
+		else jobQueue.pop();
+		queueControl.unlock();
+		gameState *root = myJob;
+		while (root->parent)
+			{
+				if (root == currentState)
+					{
+						queueControl.lock();
+						jobQueue.push(myJob);
+						queueControl.unlock();
+						break;
+					}
+				root = root->parent;
+			}
+		}
+			break;
+			case 4:
+		{
+			queueControl.lock();
+		gameState *myJob = jobQueue.front();
+		if (myJob->position[0] == -2)
+			eventCode = 2;
+		else jobQueue.pop();
+		queueControl.unlock();
+		for (auto i : myJob->children)
+		{
+			while (!i->children.empty());
+			delete i;
+		}
+		}
+			break;
+		}
+
+		/*consoleControl.lock();
+		//std::cout << "Thread " << id << " is working on job " << myJob->prevId << ".\n";
+		consoleControl.unlock();*/
+	}
+	return;
+}
+
+void pruneTree(gameState *root)
+{
+	//go down, right, then up
+	std::vector<short> stack;
+	//find the root
+	gameState *curNode = root;
+	do
+	{
+		//print
+		/*for (short k = 0; k < stack.size(); ++k)
+			cout << "| ";
+		cout << "|-" << print(*curNode) << "\n";*/
+		/*for (auto i : stack)
+			cout << i << ">";
+		cout << "\n";*/
+		//go down
+		if (!curNode->children.empty())
+		{
+			curNode = curNode->children[0];
+			stack.push_back(1);
+		}
+		else
+		{
+			while (curNode->parent->children.size() == stack.back())
+			{
+				//go up
+				curNode = curNode->parent;
+				delete curNode->children.back();
+				if (stack.size() == 1)
+				{
+					delete root;
+					return;
+				}
+				stack.pop_back();
+			}
+			//go right
+			curNode = curNode->parent->children[stack.back()];
+			delete curNode->parent->children[stack.back() - 1];
+			++stack.back();
+		}
+	} while (!stack.empty());
+
+	return;
+}
+
+void RoleCall(short a, bool b)
+{
+	
+}

@@ -1,0 +1,70 @@
+#pragma once
+#include <vector>
+
+class Round
+{
+	gameState* curState;
+	int choice;
+
+public:
+	Round(bool XisPlayer, bool OisPlayer, int cards)
+	{
+		gameState* pos = new gameState();
+		pos->Oturn = false;
+		pos->parent = nullptr;
+		pos->position[0] = 0;
+		pos->position[1] = 1;
+		pos->position[2] = 2;
+		pos->position[3] = 3;
+		pos->position[4] = 4;
+		pos->position[5] = 20;
+		pos->position[6] = 21;
+		pos->position[7] = 22;
+		pos->position[8] = 23;
+		pos->position[9] = 24;
+		if (cards == 0)
+		{
+			pos->position[10] = rand() % 16;
+			pos->position[11] = rand() % 16;
+			while (pos->position[11] == pos->position[10])
+			{
+				pos->position[11] = rand() % 16;
+			}
+			pos->position[12] = rand() % 16;
+			while (pos->position[12] == pos->position[10] || pos->position[12] == pos->position[11])
+			{
+				pos->position[12] = rand() % 16;
+			}
+			pos->position[13] = rand() % 16;
+			while (pos->position[13] == pos->position[10] || pos->position[13] == pos->position[11] || pos->position[13] == pos->position[12])
+			{
+				pos->position[13] = rand() % 16;
+			}
+			pos->position[14] = rand() % 16;
+			while (pos->position[14] == pos->position[10] || pos->position[14] == pos->position[11] || pos->position[14] == pos->position[12] || pos->position[14] == pos->position[13])
+			{
+				pos->position[14] = rand() % 16;
+			}
+		}
+		else
+			for (short i = 0; i < 5; ++i)
+				pos->position[10 + i] = (int)(cards / pow(10, 8 - i * 2)) % 100;
+		for (short i = 0; i < 5; ++i)
+			cardList[i] = new Card(pos->position[i + 10]);
+		currentState = pos;
+	}
+};
+
+struct gameState
+{
+	short position[15];
+	bool Oturn;
+	gameState* parent;
+	std::vector<gameState*> children;
+	double score = 100;
+
+	gameState()
+	{
+		score = 0;
+	}
+};
