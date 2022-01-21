@@ -1,0 +1,16 @@
+﻿1. Port printBoard().
+2. Port checkMoves() and checkWin().
+3. Port treeDump().
+
+- Write detailed priorities as the next steps become clearer.
+- 3-depth tree with pruning after every move.
+- Tentative state evaluation algorithm.
+- Min-maxing score and playing to "not lose".
+- Distinction between player and bot.
+- Genetic algorithm.
+- File I/O to save algorithm weights.
+- Tournament system of 100 rounds per generation.
+- Evolve the loser to think more similarly to the winner, with random fluctuations.
+- Multithreading to run games simultaneously.
+- Introduce random challenger on 50th, 150th, 250th... generation, and random winner from older generations on 100th, 200th, 300th... generation.
+- Test it against other Onitama bots online, and against the final boss... ME.

@@ -124,6 +124,9 @@
   <data name="maincpp" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\maincpp.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;Windows-1252</value>
   </data>
+  <data name="Priorities" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Priorities.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
   <data name="Roundh" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Roundh.txt;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;Windows-1252</value>
   </data>

@@ -117,6 +117,27 @@ namespace OnitamaBot2.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to 1. Port printBoard().
+        ///2. Port checkMoves() and checkWin().
+        ///3. Port treeDump().
+        ///
+        ///- Write detailed priorities as the next steps become clearer.
+        ///- 3-depth tree with pruning after every move.
+        ///- Tentative state evaluation algorithm.
+        ///- Min-maxing score and playing to &quot;not lose&quot;.
+        ///- Distinction between player and bot.
+        ///- Genetic algorithm.
+        ///- File I/O to save algorithm weights.
+        ///- Tournament system of 100 rounds per generation.
+        ///- Evolve the loser to think more similarly to the winner, with random fluctuati [rest of string was truncated]&quot;;.
+        /// </summary>
+        internal static string Priorities {
+            get {
+                return ResourceManager.GetString("Priorities", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to #pragma once
         ///#include &lt;vector&gt;
         ///
