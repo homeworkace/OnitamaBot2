@@ -1,5 +1,5 @@
-﻿1. Port printBoard().
-2. Port checkMoves() and checkWin().
+﻿1. Port main().
+2. Working 2-player game.
 3. Port treeDump().
 
 - Write detailed priorities as the next steps become clearer.

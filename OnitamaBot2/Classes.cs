@@ -11,7 +11,7 @@ namespace OnitamaBot2
 		public short[] position = new short[15];
 		public bool Oturn;
 		public GameState? parent;
-		public List<GameState> children;
+		public List<GameState> children = new();
 		public double score = 100;
 	}
 	struct Card
