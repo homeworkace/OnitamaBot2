@@ -1,9 +1,8 @@
-﻿1. Port main().
-2. Working 2-player game.
-3. Port treeDump().
+﻿1. Port treeDump().
+2. 3-depth tree.
+3. Pruning after every move.
 
 - Write detailed priorities as the next steps become clearer.
-- 3-depth tree with pruning after every move.
 - Tentative state evaluation algorithm.
 - Min-maxing score and playing to "not lose".
 - Distinction between player and bot.
