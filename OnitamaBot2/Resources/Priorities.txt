@@ -1,9 +1,8 @@
-﻿1. Port treeDump().
-2. 3-depth tree.
-3. Pruning after every move.
+﻿1. Pruning after every move.
+2. Layer-by-layer evaluation after every move.
+3. Tentative state evaluation algorithm.
 
 - Write detailed priorities as the next steps become clearer.
-- Tentative state evaluation algorithm.
 - Min-maxing score and playing to "not lose".
 - Distinction between player and bot.
 - Genetic algorithm.

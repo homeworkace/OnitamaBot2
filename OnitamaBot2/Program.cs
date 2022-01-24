@@ -5,77 +5,96 @@ theGame.TheGame();
 
 class Game
 {
+	GameState currentState;
 	Card[] cardList = new Card[5];
-
+	Queue<GameState> jobQueue = new();
 	public void TheGame()
 	{
 		GameState currentState = NewGame();
 
-		while (true)
+		if (CheckWin(currentState) != 0)
 		{
-			if (CheckWin(currentState) != 0)
-			{
-				//eventCode = 1;
-				//for (short i = 0; i < 8; ++i)
-				//worker[i].join();
+			//eventCode = 1;
+			//for (short i = 0; i < 8; ++i)
+			//worker[i].join();
+		}
+		short theMove = 1;
+		WeakReference theTest = null;
+		//thread worker = thread(MCSearch, &theMove);
+		//Console.Write("Computing your moves... Type 0 to stop the calculations or type anything else to view the current scores.\n");
+		/*while (true)
+		{
+			short.TryParse(Console.ReadLine(), out theMove);
+			Console.Write("Scores:\n");
+			for (short i = 0; i < currentState.children.Count; ++i)
+				//cout << (float)i->wins / i->playouts << "% (" << i->wins << "/" << i->playouts << ")\n";
+				Console.WriteLine(i + ": " + currentState.children[i].score);
+			if (theMove == 0)
 				break;
-			}
-			short theMove = 1;
-			//thread worker = thread(MCSearch, &theMove);
-			//Console.Write("Computing your moves... Type 0 to stop the calculations or type anything else to view the current scores.\n");
-			/*while (true)
-			{
-				short.TryParse(Console.ReadLine(), out theMove);
-				Console.Write("Scores:\n");
-				for (short i = 0; i < currentState.children.Count; ++i)
-					//cout << (float)i->wins / i->playouts << "% (" << i->wins << "/" << i->playouts << ")\n";
-					Console.WriteLine(i + ": " + currentState.children[i].score);
-				if (theMove == 0)
-					break;
-			}*/
-			//worker.join();
+		}*/
+		//worker.join();
 
-			while (CheckWin(currentState) != 0)
+		while (CheckWin(currentState) == 0)
+		{
+			if (currentState.Oturn % 2 == 1)
+				Console.Write("O");
+			else Console.Write("X");
+			Console.Write(", make your next move: ");
+			while (!short.TryParse(Console.ReadLine(), out theMove))
+				Console.Write("Please enter a number: ");
+			if (theMove == -1) //Dump state tree.
 			{
-				CheckMoves(currentState, cardList);
-				if (currentState.Oturn)
-					Console.Write("O");
-				else Console.Write("X");
-				Console.Write(", make your next move:\n");
-				while (!short.TryParse(Console.ReadLine(), out theMove))
-					Console.Write("Please enter a number: ");
-				if (theMove == -1) //Dump state tree.
+				Console.Write("Tree dump:\n");
+				TreeDump();
+			}
+			else if (theMove == -2) //Go back one move.
+			{
+				if (currentState.parent is not null)
+					currentState = currentState.parent;
+			}
+			else if (theMove == -3) //Something about worker threads.
+			{
+				//eventCode = 2;
+			}
+			else if (theMove == -4) //Something about worker threads.
+			{
+				//eventCode = 0;
+			}
+			else if (theMove == -5)
+			{
+				Console.WriteLine(theTest.IsAlive);
+				GC.Collect();
+			}
+			else if (theMove == -6) //the debug command
+			{
+				//Console.WriteLine(jobQueue.Count);
+				Console.WriteLine("Clean!");
+				theTest = new WeakReference(currentState.children[0]);
+				foreach (GameState child in currentState.children)
+					child.parent = null;
+				while (currentState.children.Count > 0)
 				{
-					Console.WriteLine("Tree dump:\n");
-					//treeDump();
+					currentState.children[0] = null;
+					currentState.children.RemoveAt(0);
 				}
-				else if (theMove == -2) //Go back one move.
+				//GC.Collect();
+			}
+			else if (theMove >= currentState.children.Count || theMove < 0)
+			{
+				Console.Write("Not an option.\n");
+			}
+			else
+			{
+				currentState = currentState.children[theMove];
+				PrintBoard(currentState);
+				while (jobQueue.Count > 0)
 				{
-					if (currentState.parent is not null)
-						currentState = currentState.parent;
-				}
-				else if (theMove == -3) //Something about worker threads.
-				{
-					//eventCode = 2;
-				}
-				else if (theMove == -4) //Something about worker threads.
-				{
-					//eventCode = 0;
-				}
-				else if (theMove == -5)
-				{
-				}
-				else if (theMove == -6) //the debug command
-				{
-					//Console.WriteLine(jobQueue.size());
-				}
-				else if (theMove >= currentState.children.Count || theMove < 0)
-				{
-					Console.Write("Not an option.\n");
-				}
-				else
-				{
-					currentState = currentState.children[theMove];
+					//Plan to prune tree after every move:
+					//- Set aside the branch that contains the move that was actually made.
+					//- For every other branch: if it has children, go down the first child.
+					//- If it has no children, go back up one level, get the first child to null its parent, null the first child, then remove the first child.
+					//- Ask the same question wherever you go.
+					CheckMoves(jobQueue.Dequeue());
 				}
 			}
 		}
@@ -83,16 +102,15 @@ class Game
 
 	GameState NewGame()
 	{
-		GameState currentState;
 		int choice = 0;
 		Console.Write("X starts first.\nPlace the corresponding numbers of the 5 cards in play, side by side, in this order: X's first card, X's second card, turn card, O's first card, O's second card.\nReference:\n00: Boar\n01: Cobra\n02: Crab\n03: Crane\n04: Dragon\n05: Eel\n06: Elephant\n07: Frog\n08: Goose\n09: Horse\n10: Mantis\n11: Monkey\n12: Ox\n13: Rabbit\n14: Rooster\n15: Tiger\nExample: X starts with Boar (00) and Cobra (01), O starts with Crane (03) and Dragon (04). X always starts first, so the turn card, Crab (03) belongs to X. The input is thus: 0001020304.\n");
-		while (!int.TryParse(Console.ReadLine(), out choice)) //Dragon, Ox, Crane, Goose, Eel
+		while (!int.TryParse(Console.ReadLine(), out choice)) //Monkey, Dragon, Rabbit, Elephant, Crab
 			Console.Write("Please enter a number: ");
 		for (short i = 0; i < 5; ++i)
 			cardList[i] = new Card((short)((int)(choice / Math.Pow(10, 8 - i * 2)) % 100)); //To isolate the 2 digits we want, divide by a power of ten then floor to get rid of every digit to the right, then mod 100 to get rid of every digit to the left.
 
 		GameState pos = new();
-		pos.Oturn = false;
+		pos.Oturn = 0;
 		pos.parent = null;
 		pos.position[0] = 0;
 		pos.position[1] = 1;
@@ -111,8 +129,11 @@ class Game
 		pos.position[14] = 4;
 		currentState = pos;
 
-		PrintBoard(currentState);
-		CheckMoves(currentState, cardList);
+		CheckMoves(currentState);
+		while (jobQueue.Count > 0)
+		{
+			CheckMoves(jobQueue.Dequeue());
+		}
 		return currentState;
 	}
 
@@ -182,18 +203,18 @@ class Game
 		else return 0;
 	}
 
-	void CheckMoves(GameState curState, Card[] cardList)
+	void CheckMoves(GameState curState)
 	{
 		//for each piece
 		for (short i = 0; i < 5; ++i)
 		{
 			//skip if dead (-1)
-			if (curState.position[curState.Oturn ? i + 5 : i] < 0)
+			if (curState.position[i + (curState.Oturn % 2) * 5] < 0)
 				continue;
 			//for each possible move from the 1st card
-			for (short j = 0; j < cardList[curState.position[curState.Oturn ? 13 : 10]].moveList.Count; ++j)
+			for (short j = 0; j < cardList[curState.position[10 + (curState.Oturn % 2) * 3]].moveList.Count; ++j)
 			{
-				int result = curState.position[curState.Oturn ? i + 5 : i] - (curState.Oturn ? 1 : -1) * cardList[curState.position[curState.Oturn ? 13 : 10]].moveList[j];
+				int result = curState.position[i + (curState.Oturn % 2) * 5] + (1 - (curState.Oturn % 2) * 2) * cardList[curState.position[10 + (curState.Oturn % 2) * 3]].moveList[j];
 				//if piece goes out of bounds vertically
 				if (result < 0 || result > 24)
 					continue;
@@ -203,47 +224,43 @@ class Game
 				{
 					if (k == i)
 						continue;
-					if (curState.position[curState.Oturn ? k + 5 : k] == result)
+					if (curState.position[k + (curState.Oturn % 2) * 5] == result)
 						break;
 				}
 				if (k != 5)
 					continue;
 				//if piece goes out of bounds horizontally
-				int horizontal = (curState.position[curState.Oturn ? i + 5 : i] % 5) - (curState.Oturn ? 1 : -1) * (((((cardList[curState.position[curState.Oturn ? 13 : 10]].moveList[j] + 2) % 5) - 4) % 5) + 2);
+				int horizontal = (curState.position[i + (curState.Oturn % 2) * 5] % 5) + (1 - (curState.Oturn % 2) * 2) * (((((cardList[curState.position[10 + (curState.Oturn % 2) * 3]].moveList[j] + 2) % 5) - 4) % 5) + 2);
 				if (horizontal < 0 || horizontal > 4)
 					continue;
 				//if execution reaches, this move is legal
 				GameState pos = new();
-				pos.Oturn = !curState.Oturn;
+				pos.Oturn = (short)(curState.Oturn + 1);
 				pos.parent = curState;
 				pos.score = 100;
 				for (k = 0; k < 15; ++k)
 					pos.position[k] = curState.position[k];
-				pos.position[curState.Oturn ? i + 5 : i] = (short)result;
-				/*for (k = 5; k < 10; ++k)
-					if (pos.position[curState.Oturn ? k + 5 : k] == result)
-					{
-						pos.position[curState.Oturn ? k + 5 : k] = -1;
-						break;
-					}*/
+				pos.position[i + (curState.Oturn % 2) * 5] = (short)result;
 				for (k = 0; k < 5; ++k)
-					if (pos.position[curState.Oturn ? k : k + 5] == result)
+					if (pos.position[k + 5 - (curState.Oturn % 2) * 5] == result)
 					{
-						pos.position[curState.Oturn ? k : k + 5] = -1;
+						pos.position[k + 5 - (curState.Oturn % 2) * 5] = -1;
 						break;
 					}
 				short swapCard = pos.position[12];
-				pos.position[12] = pos.position[curState.Oturn ? 13 : 10];
-				pos.position[curState.Oturn ? 13 : 10] = swapCard;
+				pos.position[12] = pos.position[10 + (curState.Oturn % 2) * 3];
+				pos.position[10 + (curState.Oturn % 2) * 3] = swapCard;
 				curState.children.Add(pos);
-				Console.WriteLine(curState.children.Count - 1);
-				PrintBoard(pos);
-				Console.WriteLine(Print(pos));
+				if (pos.Oturn < 4)
+					jobQueue.Enqueue(pos);
+				//Console.WriteLine(curState.children.Count - 1);
+				//PrintBoard(pos);
+				//Console.WriteLine(Print(pos));
 			}
 			//for each possible move from the 2nd card
-			for (short j = 0; j < cardList[curState.position[curState.Oturn ? 14 : 11]].moveList.Count; ++j)
+			for (short j = 0; j < cardList[curState.position[11 + (curState.Oturn % 2) * 3]].moveList.Count; ++j)
 			{
-				int result = curState.position[curState.Oturn ? i + 5 : i] - (curState.Oturn ? 1 : -1) * cardList[curState.position[curState.Oturn ? 14 : 11]].moveList[j];
+				int result = curState.position[i + (curState.Oturn % 2) * 5] + (1 - (curState.Oturn % 2) * 2) * cardList[curState.position[11 + (curState.Oturn % 2) * 3]].moveList[j];
 				//if piece goes out of bounds vertically
 				if (result < 0 || result > 24)
 					continue;
@@ -253,43 +270,104 @@ class Game
 				{
 					if (k == i)
 						continue;
-					if (curState.position[curState.Oturn ? k + 5 : k] == result)
+					if (curState.position[k + (curState.Oturn % 2) * 5] == result)
 						break;
 				}
 				if (k != 5)
 					continue;
 				//if piece goes out of bounds horizontally
-				int horizontal = (curState.position[curState.Oturn ? i + 5 : i] % 5) - (curState.Oturn ? 1 : -1) * (((((cardList[curState.position[curState.Oturn ? 14 : 11]].moveList[j] + 2) % 5) - 4) % 5) + 2);
+				int horizontal = (curState.position[i + (curState.Oturn % 2) * 5] % 5) + (1 - (curState.Oturn % 2) * 2) * (((((cardList[curState.position[11 + (curState.Oturn % 2) * 3]].moveList[j] + 2) % 5) - 4) % 5) + 2);
 				if (horizontal < 0 || horizontal > 4)
 					continue;
 				//if execution reaches, this move is legal
 				GameState pos = new();
-				pos.Oturn = !curState.Oturn;
+				pos.Oturn = (short)(curState.Oturn + 1);
 				pos.parent = curState;
 				pos.score = 100;
 				for (k = 0; k < 15; ++k)
 					pos.position[k] = curState.position[k];
-				pos.position[curState.Oturn ? i + 5 : i] = (short)result;
-				/*for (k = 5; k < 10; ++k)
-					if (pos.position[curState.Oturn ? k + 5 : k] == result)
-					{
-						pos.position[curState.Oturn ? k + 5 : k] = -1;
-						break;
-					}*/
+				pos.position[i + (curState.Oturn % 2) * 5] = (short)result;
 				for (k = 0; k < 5; ++k)
-					if (pos.position[curState.Oturn ? k : k + 5] == result)
+					if (pos.position[k + 5 - (curState.Oturn % 2) * 5] == result)
 					{
-						pos.position[curState.Oturn ? k : k + 5] = -1;
+						pos.position[k + 5 - (curState.Oturn % 2) * 5] = -1;
 						break;
 					}
 				short swapCard = pos.position[12];
-				pos.position[12] = pos.position[curState.Oturn ? 14 : 11];
-				pos.position[curState.Oturn ? 14 : 11] = swapCard;
+				pos.position[12] = pos.position[11 + (curState.Oturn % 2) * 3];
+				pos.position[11 + (curState.Oturn % 2) * 3] = swapCard;
 				curState.children.Add(pos);
-				Console.WriteLine(curState.children.Count - 1);
-				PrintBoard(pos);
-				Console.WriteLine(Print(pos));
+				if (pos.Oturn < 4)
+					jobQueue.Enqueue(pos);
+				//Console.WriteLine(curState.children.Count - 1);
+				//PrintBoard(pos);
+				//Console.WriteLine(Print(pos));
 			}
 		}
 	}
+	void TreeDump()
+	{
+		/*vector<vector<gameState *>::iterator> stack;
+		//find the root
+		gameState *curNode = currentState;
+		while (curNode->parent)
+			curNode = curNode->parent;
+		curNode->parent = new gameState();
+		curNode->parent->children.push_back(curNode);
+		curNode = curNode->parent;
+		stack.push_back(curNode->children.begin());
+		//print root
+		//cout << *stack.back() << "\n";
+		while (!stack.empty())
+		{
+			//print 1st children
+			for (vector<gameState *>::iterator i = (*stack.back())->children.begin(); i != (*stack.back())->children.end(); ++i)
+			{
+				for (short k = 1; k < stack.size(); ++k)
+					cout << "| ";
+				cout << "|-" << *i << "\n";
+				stack.push_back(i);
+				++i;
+				break;
+			}
+			stack.pop_back();
+		}*/
+		//go down, right, then up
+		List<short> stack = new();
+		//find the root
+		GameState curNode = currentState;
+		while (curNode.parent is not null)
+			curNode = curNode.parent;
+		do
+		{
+			//print
+			for (short k = 0; k < stack.Count; ++k)
+				Console.Write("| ");
+			Console.WriteLine("|-" + Print(curNode));
+			/*for (auto i : stack)
+				cout << i << ">";
+			cout << "\n";*/
+			//go down
+			if (curNode.children.Count > 0)
+			{
+				curNode = curNode.children[0];
+				stack.Add(1);
+			}
+			else
+			{
+				while (curNode.parent.children.Count == stack.Last())
+				{
+					//go up
+					curNode = curNode.parent;
+					if (stack.Count == 1)
+						return;
+					stack.RemoveAt(stack.Count - 1);
+				}
+				//go right
+				curNode = curNode.parent.children.Last();
+				++stack[stack.Count - 1];
+			}
+		} while (stack.Count > 0);
+	}
+
 }

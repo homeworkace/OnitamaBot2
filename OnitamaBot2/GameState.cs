@@ -9,7 +9,7 @@ namespace OnitamaBot2
 	class GameState
 	{
 		public short[] position = new short[15];
-		public bool Oturn;
+		public short Oturn;
 		public GameState? parent;
 		public List<GameState> children = new();
 		public double score = 100;
