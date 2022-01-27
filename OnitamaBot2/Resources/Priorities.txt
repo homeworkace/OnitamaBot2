@@ -1,11 +1,9 @@
-﻿1. Pruning after every move.
-2. Layer-by-layer evaluation after every move.
-3. Tentative state evaluation algorithm.
+﻿1. Tentative state evaluation algorithm.
+2. Min-maxing score and playing to "not lose".
+3. Genetic algorithm.
 
 - Write detailed priorities as the next steps become clearer.
-- Min-maxing score and playing to "not lose".
 - Distinction between player and bot.
-- Genetic algorithm.
 - File I/O to save algorithm weights.
 - Tournament system of 100 rounds per generation.
 - Evolve the loser to think more similarly to the winner, with random fluctuations.

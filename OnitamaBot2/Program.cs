@@ -60,24 +60,16 @@ class Game
 			{
 				//eventCode = 0;
 			}
-			else if (theMove == -5)
+			else if (theMove == -5) //Print all possible options
 			{
-				Console.WriteLine(theTest.IsAlive);
-				GC.Collect();
+				for (int i = 0; i < currentState.children.Count; ++i)
+                {
+					Console.WriteLine(i + ": " + Print(currentState.children[i]));
+					PrintBoard(currentState.children[i]);
+				}
 			}
 			else if (theMove == -6) //the debug command
 			{
-				//Console.WriteLine(jobQueue.Count);
-				Console.WriteLine("Clean!");
-				theTest = new WeakReference(currentState.children[0]);
-				foreach (GameState child in currentState.children)
-					child.parent = null;
-				while (currentState.children.Count > 0)
-				{
-					currentState.children[0] = null;
-					currentState.children.RemoveAt(0);
-				}
-				//GC.Collect();
 			}
 			else if (theMove >= currentState.children.Count || theMove < 0)
 			{
@@ -85,16 +77,32 @@ class Game
 			}
 			else
 			{
-				currentState = currentState.children[theMove];
-				PrintBoard(currentState);
-				while (jobQueue.Count > 0)
+				//Plan to prune tree after every move:
+				//- Set aside the branch that contains the move that was actually made.
+				GameState chosenMove = currentState.children[theMove];
+				currentState.children.Remove(chosenMove);
+				GameState pruneQuery = currentState;
+				while (currentState.children.Count > 0)
 				{
-					//Plan to prune tree after every move:
-					//- Set aside the branch that contains the move that was actually made.
 					//- For every other branch: if it has children, go down the first child.
+					while (pruneQuery.children.Count > 0)
+						pruneQuery = pruneQuery.children[0];
 					//- If it has no children, go back up one level, get the first child to null its parent, null the first child, then remove the first child.
-					//- Ask the same question wherever you go.
-					CheckMoves(jobQueue.Dequeue());
+					pruneQuery = pruneQuery.parent;
+					pruneQuery.children[0].parent = null;
+					pruneQuery.children[0] = null;
+					pruneQuery.children.RemoveAt(0);
+				} //- Ask the same question wherever you go.
+				currentState.children.Add(chosenMove);
+				currentState = chosenMove;
+				PrintBoard(currentState);
+				while (jobQueue.Peek().Oturn - currentState.Oturn < 4)
+				{
+					pruneQuery = jobQueue.Dequeue();
+					if (pruneQuery.parent != null)
+						CheckMoves(pruneQuery);
+					if (jobQueue.Count == 0)
+						break;
 				}
 			}
 		}
@@ -104,7 +112,7 @@ class Game
 	{
 		int choice = 0;
 		Console.Write("X starts first.\nPlace the corresponding numbers of the 5 cards in play, side by side, in this order: X's first card, X's second card, turn card, O's first card, O's second card.\nReference:\n00: Boar\n01: Cobra\n02: Crab\n03: Crane\n04: Dragon\n05: Eel\n06: Elephant\n07: Frog\n08: Goose\n09: Horse\n10: Mantis\n11: Monkey\n12: Ox\n13: Rabbit\n14: Rooster\n15: Tiger\nExample: X starts with Boar (00) and Cobra (01), O starts with Crane (03) and Dragon (04). X always starts first, so the turn card, Crab (03) belongs to X. The input is thus: 0001020304.\n");
-		while (!int.TryParse(Console.ReadLine(), out choice)) //Monkey, Dragon, Rabbit, Elephant, Crab
+		while (!int.TryParse(Console.ReadLine(), out choice)) //Goose, Rooster, Tiger, Eel, Mantis
 			Console.Write("Please enter a number: ");
 		for (short i = 0; i < 5; ++i)
 			cardList[i] = new Card((short)((int)(choice / Math.Pow(10, 8 - i * 2)) % 100)); //To isolate the 2 digits we want, divide by a power of ten then floor to get rid of every digit to the right, then mod 100 to get rid of every digit to the left.
@@ -130,10 +138,8 @@ class Game
 		currentState = pos;
 
 		CheckMoves(currentState);
-		while (jobQueue.Count > 0)
-		{
+		while (jobQueue.Peek().Oturn < 4)
 			CheckMoves(jobQueue.Dequeue());
-		}
 		return currentState;
 	}
 
@@ -251,7 +257,7 @@ class Game
 				pos.position[12] = pos.position[10 + (curState.Oturn % 2) * 3];
 				pos.position[10 + (curState.Oturn % 2) * 3] = swapCard;
 				curState.children.Add(pos);
-				if (pos.Oturn < 4)
+				//if (pos.Oturn - currentState.Oturn < 4)
 					jobQueue.Enqueue(pos);
 				//Console.WriteLine(curState.children.Count - 1);
 				//PrintBoard(pos);
@@ -297,7 +303,7 @@ class Game
 				pos.position[12] = pos.position[11 + (curState.Oturn % 2) * 3];
 				pos.position[11 + (curState.Oturn % 2) * 3] = swapCard;
 				curState.children.Add(pos);
-				if (pos.Oturn < 4)
+				//if (pos.Oturn < 4)
 					jobQueue.Enqueue(pos);
 				//Console.WriteLine(curState.children.Count - 1);
 				//PrintBoard(pos);
@@ -307,31 +313,6 @@ class Game
 	}
 	void TreeDump()
 	{
-		/*vector<vector<gameState *>::iterator> stack;
-		//find the root
-		gameState *curNode = currentState;
-		while (curNode->parent)
-			curNode = curNode->parent;
-		curNode->parent = new gameState();
-		curNode->parent->children.push_back(curNode);
-		curNode = curNode->parent;
-		stack.push_back(curNode->children.begin());
-		//print root
-		//cout << *stack.back() << "\n";
-		while (!stack.empty())
-		{
-			//print 1st children
-			for (vector<gameState *>::iterator i = (*stack.back())->children.begin(); i != (*stack.back())->children.end(); ++i)
-			{
-				for (short k = 1; k < stack.size(); ++k)
-					cout << "| ";
-				cout << "|-" << *i << "\n";
-				stack.push_back(i);
-				++i;
-				break;
-			}
-			stack.pop_back();
-		}*/
 		//go down, right, then up
 		List<short> stack = new();
 		//find the root
@@ -343,10 +324,7 @@ class Game
 			//print
 			for (short k = 0; k < stack.Count; ++k)
 				Console.Write("| ");
-			Console.WriteLine("|-" + Print(curNode));
-			/*for (auto i : stack)
-				cout << i << ">";
-			cout << "\n";*/
+			Console.Write("|- (" + Print(curNode) + ")\n");
 			//go down
 			if (curNode.children.Count > 0)
 			{
