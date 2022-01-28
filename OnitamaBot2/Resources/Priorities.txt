@@ -1,9 +1,8 @@
-﻿1. Tentative state evaluation algorithm.
-2. Min-maxing score and playing to "not lose".
-3. Genetic algorithm.
+﻿1. Option to get move ID from piece->card->step.
+2. Genetic algorithm.
+3. Distinction between player and bot.
 
 - Write detailed priorities as the next steps become clearer.
-- Distinction between player and bot.
 - File I/O to save algorithm weights.
 - Tournament system of 100 rounds per generation.
 - Evolve the loser to think more similarly to the winner, with random fluctuations.
