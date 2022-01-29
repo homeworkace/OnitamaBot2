@@ -3,6 +3,30 @@
 Game theGame = new();
 theGame.TheGame();
 
+/*Evaluator theBot = new();
+GameState pos = new();
+pos.Oturn = 0;
+pos.parent = null;
+pos.score = 0;
+pos.position[0] = -1;
+pos.position[1] = 1;
+pos.position[2] = 2;
+pos.position[3] = 3;
+pos.position[4] = -4;
+pos.position[5] = -1;
+pos.position[6] = -1;
+pos.position[7] = 17;
+pos.position[8] = -1;
+pos.position[9] = -1;
+pos.position[10] = 0;
+pos.position[11] = 1;
+pos.position[12] = 2;
+pos.position[13] = 3;
+pos.position[14] = 4;
+Console.WriteLine(theBot.Evaluate(pos));
+//float bruh = 5;
+//Console.WriteLine(bruh / 16 + bruh / 17 + bruh / 25 + bruh / 32);*/
+
 class Game
 {
 	GameState currentState;
@@ -130,7 +154,7 @@ class Game
 			//Console.Write("O Stone.\n");
 			return -1;
 		}
-		else if (curState.position[7] < 2)
+		else if (curState.position[7] == 2)
 		{
 			//Console.Write("O Stream.\n");
 			return -1;
@@ -141,7 +165,7 @@ class Game
 	{
 		int choice = 0;
 		Console.Write("X starts first.\nPlace the corresponding numbers of the 5 cards in play, side by side, in this order: X's first card, X's second card, turn card, O's first card, O's second card.\nReference:\n00: Boar\n01: Cobra\n02: Crab\n03: Crane\n04: Dragon\n05: Eel\n06: Elephant\n07: Frog\n08: Goose\n09: Horse\n10: Mantis\n11: Monkey\n12: Ox\n13: Rabbit\n14: Rooster\n15: Tiger\nExample: X starts with Boar (00) and Cobra (01), O starts with Crane (03) and Dragon (04). X always starts first, so the turn card, Crab (03) belongs to X. The input is thus: 0001020304.\n");
-		while (!int.TryParse(Console.ReadLine(), out choice)) //Crane, Crab, Tiger, Mantis, Elephant
+		while (!int.TryParse(Console.ReadLine(), out choice)) //Eel, Monkey, Crane, Cobra, Elephant
 			Console.Write("Please enter a number: ");
 		for (short i = 0; i < 5; ++i)
 			cardList[i] = new Card((short)((int)(choice / Math.Pow(10, 8 - i * 2)) % 100)); //To isolate the 2 digits we want, divide by a power of ten then floor to get rid of every digit to the right, then mod 100 to get rid of every digit to the left.
@@ -196,12 +220,10 @@ class Game
 				{
 					if (state.position[i] == (4 - y) * 5 + x)
 					{
-						if (i < 5)
-						{
-							if (i == 2)
-								Console.Write("X");
-							else Console.Write("x");
-						}
+						if (i == 2)
+							Console.Write("X");
+						else if (i < 5)
+							Console.Write("x");
 						else if (i == 7)
 							Console.Write("O");
 						else Console.Write("o");
@@ -245,13 +267,84 @@ class Game
 			if (currentState.Oturn % 2 == 1)
 				Console.Write("O");
 			else Console.Write("X");
-			Console.Write(", make your next move: ");
+			Console.Write(", make your next move.\n-1 for more intuitive input, -2 to go back one move, -3 to show the suggested move, -4 to dump state tree, -5 to show all possible moves: ");
 			while (!short.TryParse(Console.ReadLine(), out theMove))
 				Console.Write("Please enter a number: ");
-			if (theMove == -1) //Dump state tree.
+			if (theMove == -1) //More intuitive selection.
 			{
-				Console.Write("Tree dump:\n");
-				TreeDump();
+				int cardChoice, pieceChoice;
+				Console.Write("Select a card (0 for " + cardList[currentState.position[10 + (currentState.Oturn % 2) * 3]].name + ", 1 for " + cardList[currentState.position[11 + (currentState.Oturn % 2) * 3]].name + "). -1 to cancel: ");
+				while (!int.TryParse(Console.ReadLine(), out cardChoice))
+					Console.Write("Please enter a number: ");
+				if (cardChoice == -1)
+					continue;
+				cardChoice += 10 + (currentState.Oturn % 2) * 3;
+				Console.Write("_______\n");
+				for (short y = 0; y < 5; ++y)
+				{
+					Console.Write("|");
+					for (short x = 0; x < 5; ++x)
+					{
+						short i = 0;
+						for (; i < 5; ++i)
+						{
+							if (currentState.position[i + (currentState.Oturn % 2) * 5] == (4 - y) * 5 + x)
+							{
+								Console.Write(i);
+								break;
+							}
+						}
+						if (i == 5)
+							Console.Write(" ");
+					}
+					Console.Write("|\n");
+				}
+				Console.Write("_______\nSelect the piece you wish to move. -1 to cancel: ");
+				while (!int.TryParse(Console.ReadLine(), out pieceChoice))
+					Console.Write("Please enter a number: ");
+				if (pieceChoice == -1)
+					continue;
+				pieceChoice += (currentState.Oturn % 2) * 5;
+				List<short> possibleMoves = new();
+				for (short i = 0; i < currentState.children.Count; ++i)
+					if (currentState.children[i].position[12] == currentState.position[cardChoice] && currentState.position[pieceChoice] != currentState.children[i].position[pieceChoice])
+						possibleMoves.Add(i);
+				if (possibleMoves.Count == 0)
+                {
+					Console.Write("No possible moves exist with this card and piece.\n");
+					continue;
+                }
+				Console.Write("_______\n");
+				for (short y = 0; y < 5; ++y)
+				{
+					Console.Write("|");
+					for (short x = 0; x < 5; ++x)
+					{
+						if (currentState.position[pieceChoice] == (4 - y) * 5 + x)
+                        {
+							if (pieceChoice == 2)
+								Console.Write("X");
+							else if (pieceChoice < 5)
+								Console.Write("x");
+							else if (pieceChoice == 7)
+								Console.Write("O");
+							else Console.Write("o");
+							continue;
+						}
+						bool noMove = true;
+						foreach (short i in possibleMoves)
+							if (currentState.children[i].position[pieceChoice] == (4 - y) * 5 + x)
+							{
+								Console.Write(i);
+								noMove = false;
+								break;
+							}
+						if (noMove)
+							Console.Write(" ");
+					}
+					Console.Write("|\n");
+				}
+				Console.Write("_______ Move ID's for your desired moves are shown above.\n");
 			}
 			else if (theMove == -2) //Go back one move.
 			{
@@ -271,9 +364,10 @@ class Game
 				Console.WriteLine(bestCandidate + " use " + cardList[currentState.children[bestCandidate].position[12]].name + ": " + currentState.children[bestCandidate].score);
 				PrintBoard(currentState.children[bestCandidate]);
 			}
-			else if (theMove == -4) //Something about worker threads.
+			else if (theMove == -4) //Dump state tree.
 			{
-				//eventCode = 0;
+				Console.Write("Tree dump:\n");
+				TreeDump();
 			}
 			else if (theMove == -5) //Print all possible options
 			{

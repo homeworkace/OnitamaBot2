@@ -152,23 +152,29 @@ namespace OnitamaBot2
             float distance;
             for (int i = 0; i < 5; ++i)
             {
-				//+ sum of (5 / X distance to O daimyo)
-				distance = (posX[7] - posX[i]) * (posX[7] - posX[i]) + (posY[7] - posY[i]) * (posY[7] - posY[i]);
-				//result += (IsOplayer? -5 : 5) / distance;
-				result += 5 / distance;
-				//- sum of (5 / O distance to X daimyo)
-				distance = (posX[2] - posX[i + 5]) * (posX[2] - posX[i + 5]) + (posY[2] - posY[i + 5]) * (posY[2] - posY[i + 5]);
-				//result -= (IsOplayer ? -5 : 5) / distance;
-				result -= 5 / distance;
+				if (posX[i] != -1)
+				{
+					//+ sum of (10 / X distance to O daimyo + 5)
+					distance = (posX[7] - posX[i]) * (posX[7] - posX[i]) + (posY[7] - posY[i]) * (posY[7] - posY[i]);
+					//result += (IsOplayer? -10 : 10) / (distance + 5);
+					result += 10 / (distance + 5);
+				}
+				if (posX[i + 5] != -1)
+				{
+					//- sum of (10 / O distance to X daimyo + 5)
+					distance = (posX[2] - posX[i + 5]) * (posX[2] - posX[i + 5]) + (posY[2] - posY[i + 5]) * (posY[2] - posY[i + 5]);
+					//result -= (IsOplayer? -10 : 10) / (distance + 5);
+					result -= 10  / (distance + 5);
+				}
 			}
-			//+ 3 / X daimyo distance to O shrine
+			//+ 10 / (X daimyo distance to O shrine + 2)
 			distance = (2 - posX[2]) * (2 - posX[2]) + (4 - posY[2]) * (4 - posY[2]);
-			//result += (IsOplayer ? -3 : 3) / distance;
-			result += 3 / distance;
-			//+ 3 / O daimyo distance to X shrine
+			//result += (IsOplayer? -10 : 10) / (distance + 2);
+			result += 10 / (distance + 2);
+			//+ 10 / (O daimyo distance to X shrine + 2)
 			distance = (2 - posX[7]) * (2 - posX[7]) + (0 - posY[7]) * (0 - posY[7]);
-			//result -= (IsOplayer ? -3 : 3) / distance;
-			result -= 3 / distance;
+			//result -= (IsOplayer? -10 : 10) / (distance + 2);
+			result -= 10 / (distance + 2);
 
 			return result;
 		}

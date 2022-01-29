@@ -1,9 +1,8 @@
-﻿1. Option to get move ID from piece->card->step.
-2. Genetic algorithm.
-3. Distinction between player and bot.
+﻿1. Genetic algorithm.
+2. Distinction between player and bot.
+3. File I/O to save algorithm weights.
 
 - Write detailed priorities as the next steps become clearer.
-- File I/O to save algorithm weights.
 - Tournament system of 100 rounds per generation.
 - Evolve the loser to think more similarly to the winner, with random fluctuations.
 - Multithreading to run games simultaneously.
