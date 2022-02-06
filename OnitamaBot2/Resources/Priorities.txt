@@ -1,10 +1,9 @@
-﻿1. Genetic algorithm.
-2. Distinction between player and bot.
-3. File I/O to save algorithm weights.
+﻿1. Distinction between player and bot.
+2. Tournament system of 100 rounds per generation.
+3. Evolve the loser to think more similarly to the winner, with random fluctuations.
 
 - Write detailed priorities as the next steps become clearer.
-- Tournament system of 100 rounds per generation.
-- Evolve the loser to think more similarly to the winner, with random fluctuations.
 - Multithreading to run games simultaneously.
 - Introduce random challenger on 50th, 150th, 250th... generation, and random winner from older generations on 100th, 200th, 300th... generation.
+- Check how often the evaluation score hits (-)1000.
 - Test it against other Onitama bots online, and against the final boss... ME.

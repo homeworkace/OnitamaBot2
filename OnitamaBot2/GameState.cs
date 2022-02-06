@@ -18,9 +18,11 @@ namespace OnitamaBot2
 	{
 		public List<short> moveList = new();
 		public string name = "";
+		public short id;
 
 		public Card(short id)
 		{
+			this.id = id;
 			switch (id)
 			{
 				case 0: //Boar
@@ -131,8 +133,53 @@ namespace OnitamaBot2
 		bool IsOplayer = false;
 		int[] posX = new int[10];
 		int[] posY = new int[10];
+		short[] input = new short[41];
+		double[] layerA = new double[41];
+		double[] layerB = new double[41];
+		double[] layerC = new double[41];
+		float[] weight = new float[5084];
+		float[] bias = new float[123];
 
-		public double Evaluate(GameState state)
+		public void Initialise(string filePath) //example: "..//..//..//..//Genomes//test.txt"
+		{
+			StreamReader theFile = new StreamReader(filePath);
+			string data = theFile.ReadToEnd();
+			theFile.Close();
+
+			int i = 0;
+			foreach (string value in data.Split('\n'))
+			{
+				if (value == "")
+					break;
+				if (i < 5084)
+					weight[i++] = float.Parse(value);
+				else bias[i++ - 5084] = float.Parse(value);
+			}
+        }
+		public void Initialise()
+        {
+			int i = 0;
+			for (; i < 1681; ++i)
+				weight[i] = (float)(Random.Shared.NextDouble() * 20 - 10);
+			for (; i < 3362; ++i)
+				weight[i] = (float)(Random.Shared.NextDouble() * 2 - 1);
+			for (; i < 5043; ++i)
+				weight[i] = (float)(Random.Shared.NextDouble() * 0.2 - 0.1);
+			for (; i < 5084; ++i)
+				weight[i] = (float)(Random.Shared.NextDouble() * 0.02 - 0.01);
+			for (i = 0; i < 123; ++i)
+				bias[i] = (float)(Random.Shared.NextDouble() * 2 - 1);
+		}
+		public void WriteGenes(string filePath) //example: "..//..//..//..//Genomes//test.txt"
+		{
+			StreamWriter theFile = new StreamWriter(filePath);
+			foreach (float gene in weight)
+				theFile.Write(gene + "\n");
+			foreach (float gene in bias)
+				theFile.Write(gene + "\n");
+			theFile.Close();
+		}
+        public double HandcraftedEvaluate(GameState state)
 		{
 			//tentative algorithm:
 			//1. sum of distances to enemy daimyo - sum of enemy distances to daimyo
@@ -196,7 +243,7 @@ namespace OnitamaBot2
 				else
 				{
 					if (queryState.children.Count == 0)
-						queryState.score = Evaluate(queryState);
+						queryState.score = HandcraftedEvaluate(queryState);
 					if (indices[indices.Count - 2] == 0)
 						queryState.parent.score = queryState.score;
 					else if (queryState.Oturn % 2 == 0 && queryState.score < queryState.parent.score)
@@ -207,6 +254,69 @@ namespace OnitamaBot2
 					indices.RemoveAt(indices.Count - 1);
 					indices[indices.Count - 1] += 1;
 				}
-        }
+		}
+		public double GeneticEvaluate(GameState state, Card[] cards)
+		{
+			//(1 if X pawn is on that location, 5 if X daimyo, -1 if O pawn, -5 if O daimyo, 0 if empty)
+			//p0, p1, p2, p3, p4,
+			//p5, p6, p7, p8, p9,
+			//p10, p11, p12, p13, p14,
+			//p15, p16, p17, p18, p19,
+			//p20, p21, p22, p23, p24, (1 if X pawn is on that location, 5 if X daimyo, -1 if O pawn, -5 if O daimyo, 0 if empty)
+			//c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15 (2 if owned by X, -2 if owned by O, 1/-1 if turn card depending on whose turn it is, 0 otherwise)
+			//there will be 41 input nodes, 3 intermediary layers of 41 nodes, 41 * 41 * 3 + 41 = 5084 weights and 41 * 3 = 123 biases
+
+			//fill the input nodes
+			int i = 0;
+			for (; i < 5; ++i)
+				if (state.position[i] != -1)
+					input[state.position[i]] = 1;
+			for (; i < 10; ++i)
+				if (state.position[i] != -1)
+					input[state.position[i]] = -1;
+			input[state.position[2]] = 5;
+			input[state.position[7]] = -5;
+			input[cards[state.position[10]].id + 25] = 2;
+			input[cards[state.position[11]].id + 25] = 2;
+			input[cards[state.position[12]].id + 25] = (short)(state.Oturn % 2 == 0 ? 1 : -1);
+			input[cards[state.position[13]].id + 25] = -2;
+			input[cards[state.position[14]].id + 25] = -2;
+
+			//calculate the first node of intermediary layer A
+			for (i = 0; i < 41; ++i)
+			{
+				layerA[i] = bias[i];
+				//layerA[i] = 0;
+				for (int j = 0; j < 41; ++j)
+					layerA[i] += input[j] * weight[i * 41 + j];
+			}
+			//calculate the first node of intermediary layer B
+			for (i = 0; i < 41; ++i)
+			{
+				layerB[i] = bias[41 + i];
+				//layerB[i] = 0;
+				for (int j = 0; j < 41; ++j)
+					layerB[i] += layerA[j] * weight[1681 + i * 41 + j];
+			}
+			//calculate the first node of intermediary layer C
+			for (i = 0; i < 41; ++i)
+			{
+				layerC[i] = bias[82 + i];
+				//layerC[i] = 0;
+				for (int j = 0; j < 41; ++j)
+					layerC[i] += layerB[j] * weight[3362 + i * 41 + j];
+			}
+			//calculate the output node
+			double result = 0;
+			for (i = 0; i < 41; ++i)
+				result += layerC[i] * weight[5043 + i];
+
+			if (Math.Abs(result) > 999.999)
+			{
+				Console.WriteLine("Score was normalised from " + result);
+				result = Math.Sign(result) * 999.999;
+			}
+			return result;
+		}
 	}
 }

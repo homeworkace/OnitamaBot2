@@ -1,29 +1,33 @@
 ﻿using OnitamaBot2;
 
-Game theGame = new();
-theGame.TheGame();
+//Game theGame = new();
+//theGame.TheGame();
 
-/*Evaluator theBot = new();
+Evaluator theBot = new();
+theBot.Initialise();
+theBot.WriteGenes("..//..//..//..//Genomes//test.txt");
+//theBot.Initialise("..//..//..//..//Genomes//test.txt");
 GameState pos = new();
 pos.Oturn = 0;
 pos.parent = null;
 pos.score = 0;
 pos.position[0] = -1;
-pos.position[1] = 1;
+pos.position[1] = -1;
 pos.position[2] = 2;
-pos.position[3] = 3;
-pos.position[4] = -4;
-pos.position[5] = -1;
-pos.position[6] = -1;
-pos.position[7] = 17;
-pos.position[8] = -1;
-pos.position[9] = -1;
+pos.position[3] = -1;
+pos.position[4] = -1;
+pos.position[5] = 3;
+pos.position[6] = 8;
+pos.position[7] = 7;
+pos.position[8] = 6;
+pos.position[9] = 1;
 pos.position[10] = 0;
 pos.position[11] = 1;
 pos.position[12] = 2;
 pos.position[13] = 3;
 pos.position[14] = 4;
-Console.WriteLine(theBot.Evaluate(pos));
+Console.WriteLine(theBot.GeneticEvaluate(pos, new[] { new Card(0), new Card(1), new Card(2), new Card(3), new Card(4) }));
+Console.WriteLine("bruh");
 //float bruh = 5;
 //Console.WriteLine(bruh / 16 + bruh / 17 + bruh / 25 + bruh / 32);*/
 
