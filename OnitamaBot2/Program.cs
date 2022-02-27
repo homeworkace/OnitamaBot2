@@ -1,26 +1,44 @@
 ﻿using OnitamaBot2;
 
-//Game theGame = new();
-//theGame.TheGame();
+Training();
 
-Evaluator theBot = new();
+void PassAndPlay()
+{
+	Game theGame = new();
+	theGame.NewGame(false, Array.Empty<Card>());
+	theGame.TheGame();
+}
+void Training()
+{
+	Game theGame = new();
+	theGame.NewGame(true, new[] { new Card(0), new Card(1), new Card(2), new Card(3), new Card(4) });
+	theGame.botX.Initialise("..//..//..//..//Genomes//testX.txt");
+	//theGame.botX.Initialise();
+	//theGame.botX.WriteGenes("..//..//..//..//Genomes//testX.txt");
+	theGame.botO.Initialise("..//..//..//..//Genomes//testO.txt");
+	//theGame.botO.Initialise();
+	//theGame.botO.WriteGenes("..//..//..//..//Genomes//testO.txt");
+	theGame.TheGame();
+}
+
+/*Evaluator theBot = new();
 theBot.Initialise();
-theBot.WriteGenes("..//..//..//..//Genomes//test.txt");
+//theBot.WriteGenes("..//..//..//..//Genomes//test.txt");
 //theBot.Initialise("..//..//..//..//Genomes//test.txt");
 GameState pos = new();
 pos.Oturn = 0;
 pos.parent = null;
 pos.score = 0;
-pos.position[0] = -1;
-pos.position[1] = -1;
+pos.position[0] = 0;
+pos.position[1] = 1;
 pos.position[2] = 2;
-pos.position[3] = -1;
-pos.position[4] = -1;
-pos.position[5] = 3;
-pos.position[6] = 8;
-pos.position[7] = 7;
-pos.position[8] = 6;
-pos.position[9] = 1;
+pos.position[3] = 3;
+pos.position[4] = 4;
+pos.position[5] = 24;
+pos.position[6] = 23;
+pos.position[7] = 22;
+pos.position[8] = 21;
+pos.position[9] = 20;
 pos.position[10] = 0;
 pos.position[11] = 1;
 pos.position[12] = 2;
@@ -34,9 +52,9 @@ Console.WriteLine("bruh");
 class Game
 {
 	GameState currentState;
-	Card[] cardList = new Card[5];
+	public Card[] cardList;
 	Queue<GameState> jobQueue = new();
-	Evaluator theBot = new Evaluator();
+	public Evaluator botX, botO;
 	void CheckMoves(GameState curState)
 	{
 		//for each piece
@@ -165,14 +183,19 @@ class Game
 		}
 		else return 0;
 	}
-	GameState NewGame()
+	public GameState NewGame(bool trainingMode, Card[] presetCards)
 	{
 		int choice = 0;
-		Console.Write("X starts first.\nPlace the corresponding numbers of the 5 cards in play, side by side, in this order: X's first card, X's second card, turn card, O's first card, O's second card.\nReference:\n00: Boar\n01: Cobra\n02: Crab\n03: Crane\n04: Dragon\n05: Eel\n06: Elephant\n07: Frog\n08: Goose\n09: Horse\n10: Mantis\n11: Monkey\n12: Ox\n13: Rabbit\n14: Rooster\n15: Tiger\nExample: X starts with Boar (00) and Cobra (01), O starts with Crane (03) and Dragon (04). X always starts first, so the turn card, Crab (03) belongs to X. The input is thus: 0001020304.\n");
-		while (!int.TryParse(Console.ReadLine(), out choice)) //Eel, Monkey, Crane, Cobra, Elephant
-			Console.Write("Please enter a number: ");
-		for (short i = 0; i < 5; ++i)
-			cardList[i] = new Card((short)((int)(choice / Math.Pow(10, 8 - i * 2)) % 100)); //To isolate the 2 digits we want, divide by a power of ten then floor to get rid of every digit to the right, then mod 100 to get rid of every digit to the left.
+		if (presetCards.Length == 0)
+		{
+			Console.Write("X starts first.\nPlace the corresponding numbers of the 5 cards in play, side by side, in this order: X's first card, X's second card, turn card, O's first card, O's second card.\nReference:\n00: Boar\n01: Cobra\n02: Crab\n03: Crane\n04: Dragon\n05: Eel\n06: Elephant\n07: Frog\n08: Goose\n09: Horse\n10: Mantis\n11: Monkey\n12: Ox\n13: Rabbit\n14: Rooster\n15: Tiger\nExample: X starts with Boar (00) and Cobra (01), O starts with Crane (03) and Dragon (04). X always starts first, so the turn card, Crab (03) belongs to X. The input is thus: 0001020304.\n");
+			while (!int.TryParse(Console.ReadLine(), out choice)) //Eel, Monkey, Goose, Crane, Cobra, 0511080301
+				Console.Write("Please enter a number: ");
+			cardList = new Card[5];
+			for (short i = 0; i < 5; ++i)
+				cardList[i] = new Card((short)((int)(choice / Math.Pow(10, 8 - i * 2)) % 100)); //To isolate the 2 digits we want, divide by a power of ten then floor to get rid of every digit to the right, then mod 100 to get rid of every digit to the left.
+		}
+		else cardList = presetCards;
 
 		GameState pos = new();
 		pos.Oturn = 0;
@@ -195,10 +218,15 @@ class Game
 		pos.position[14] = 4;
 		currentState = pos;
 
+		botX = new Evaluator();
+		botX.theGame = this;
+		if (trainingMode)
+        {
+			botO = new Evaluator();
+			botO.theGame = this;
+		}
 		CheckMoves(currentState);
-		while (jobQueue.Peek().Oturn < 4)
-			CheckMoves(jobQueue.Dequeue());
-		theBot.EvaluateFrom(currentState);
+		PrintBoard(currentState);
 		return currentState;
 	}
 	string Print(GameState state)
@@ -243,37 +271,52 @@ class Game
 	}
 	public void TheGame()
 	{
-		GameState currentState = NewGame();
-
-		if (CheckWin(currentState) != 0)
-		{
-			//eventCode = 1;
-			//for (short i = 0; i < 8; ++i)
-			//worker[i].join();
-		}
 		short theMove = 1;
-		//thread worker = thread(MCSearch, &theMove);
-		//Console.Write("Computing your moves... Type 0 to stop the calculations or type anything else to view the current scores.\n");
-		/*while (true)
-		{
-			short.TryParse(Console.ReadLine(), out theMove);
-			Console.Write("Scores:\n");
-			for (short i = 0; i < currentState.children.Count; ++i)
-				//cout << (float)i->wins / i->playouts << "% (" << i->wins << "/" << i->playouts << ")\n";
-				Console.WriteLine(i + ": " + currentState.children[i].score);
-			if (theMove == 0)
-				break;
-		}*/
-		//worker.join();
 
 		while (CheckWin(currentState) == 0)
 		{
-			if (currentState.Oturn % 2 == 1)
-				Console.Write("O");
-			else Console.Write("X");
-			Console.Write(", make your next move.\n-1 for more intuitive input, -2 to go back one move, -3 to show the suggested move, -4 to dump state tree, -5 to show all possible moves: ");
-			while (!short.TryParse(Console.ReadLine(), out theMove))
-				Console.Write("Please enter a number: ");
+			while (jobQueue.Peek().Oturn - currentState.Oturn < 4)
+			{
+				GameState stateQuery = jobQueue.Dequeue();
+				//Only work on jobs for positions still on the tree.
+				if (stateQuery.parent != null)
+					CheckMoves(stateQuery);
+				if (jobQueue.Count == 0)
+					break;
+			}
+			if (botO is null || currentState.Oturn % 2 == 0)
+				botX.EvaluateFrom(currentState);
+			else botO.EvaluateFrom(currentState);
+			if (botO is null)
+			{
+				if (currentState.Oturn % 2 == 1)
+					Console.Write("O");
+				else Console.Write("X");
+				Console.Write(", make your next move.\n-1 for more intuitive input, -2 to go back one move, -3 to show the suggested move, -4 to dump state tree, -5 to show all possible moves: ");
+				while (!short.TryParse(Console.ReadLine(), out theMove))
+					Console.Write("Please enter a number: ");
+            }
+			else
+			{
+				//if botO exists, training mode is enabled. we dont need any player involvement
+				PrintBoard(currentState);
+				Console.WriteLine("State of the game at move " + currentState.Oturn);
+				if (currentState.Oturn % 10 == 0)
+				{
+					//Console.Write("State of the game at move " + currentState.Oturn + ". Type \"0\" to quit, anything else to continue: ");
+					Console.Write("Type \"0\" to quit, anything else to continue: ");
+					if (Console.ReadLine() == "0")
+						break;
+				}
+				theMove = 0;
+				for (int i = 1; i < currentState.children.Count; ++i)
+				{
+					if (currentState.Oturn % 2 == 0 && currentState.children[i].score > currentState.children[theMove].score)
+						theMove = (short)i;
+					else if (currentState.Oturn % 2 == 1 && currentState.children[i].score < currentState.children[theMove].score)
+						theMove = (short)i;
+				}
+			}
 			if (theMove == -1) //More intuitive selection.
 			{
 				int cardChoice, pieceChoice;
@@ -407,20 +450,23 @@ class Game
 				} 
 				currentState.children.Add(chosenMove);
 				currentState = chosenMove;
-				PrintBoard(currentState);
-				while (jobQueue.Peek().Oturn - currentState.Oturn < 4)
-				{
-					stateQuery = jobQueue.Dequeue();
-					//Only work on jobs for positions still on the tree.
-					if (stateQuery.parent != null)
-						CheckMoves(stateQuery);
-					if (jobQueue.Count == 0)
-						break;
-				}
-				theBot.EvaluateFrom(currentState);
+				if (botO is null)
+					PrintBoard(currentState);
 			}
 		}
+		PrintBoard(currentState);
+		Console.Write((CheckWin(currentState) > 0 ? "X" : "O") + " wins at turn " + currentState.Oturn);
 	}
+	/*void TrainingGame(Card[] startingCards, Evaluator botX, Evaluator botO)
+    {
+		cardList = startingCards;
+		GameState currentState = NewGame();
+
+		while (CheckWin(currentState) == 0)
+        {
+
+        }
+    }*/
 	void TreeDump()
 	{
 		//go down, right, then up

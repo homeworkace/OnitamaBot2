@@ -131,6 +131,7 @@ namespace OnitamaBot2
 	class Evaluator
 	{
 		bool IsOplayer = false;
+		bool IsInitialised = false;
 		int[] posX = new int[10];
 		int[] posY = new int[10];
 		short[] input = new short[41];
@@ -139,6 +140,7 @@ namespace OnitamaBot2
 		double[] layerC = new double[41];
 		float[] weight = new float[5084];
 		float[] bias = new float[123];
+		public Game theGame;
 
 		public void Initialise(string filePath) //example: "..//..//..//..//Genomes//test.txt"
 		{
@@ -155,28 +157,57 @@ namespace OnitamaBot2
 					weight[i++] = float.Parse(value);
 				else bias[i++ - 5084] = float.Parse(value);
 			}
+
+			IsInitialised = true;
         }
 		public void Initialise()
         {
 			int i = 0;
-			for (; i < 1681; ++i)
+			/*for (; i < 1681; ++i)
 				weight[i] = (float)(Random.Shared.NextDouble() * 20 - 10);
 			for (; i < 3362; ++i)
 				weight[i] = (float)(Random.Shared.NextDouble() * 2 - 1);
 			for (; i < 5043; ++i)
 				weight[i] = (float)(Random.Shared.NextDouble() * 0.2 - 0.1);
 			for (; i < 5084; ++i)
-				weight[i] = (float)(Random.Shared.NextDouble() * 0.02 - 0.01);
+				weight[i] = (float)(Random.Shared.NextDouble() * 0.02 - 0.01);*/
+			for (; i < 5084; ++i)
+				weight[i] = (float)(Random.Shared.NextDouble() * 2 - 1);
 			for (i = 0; i < 123; ++i)
 				bias[i] = (float)(Random.Shared.NextDouble() * 2 - 1);
+
+			IsInitialised = true;
+		}
+		public void TestInitialise()
+		{
+			int i = 0;
+			for (; i < 1681; ++i)
+			{
+				int bruh = i % 41;
+				if (bruh == 20 || bruh == 21 || bruh == 22 || bruh == 23 || bruh == 24 || bruh == 28 || bruh == 29)
+					weight[i] = -1;
+				else weight[i] = 1;
+			}
+			/*for (; i < 3362; ++i)
+				weight[i] = 1;
+			for (; i < 5043; ++i)
+				weight[i] = 0.1F;
+			for (; i < 5084; ++i)
+				weight[i] = 0.01F;*/
+			for (; i < 5084; ++i)
+				weight[i] = 1;
+			for (i = 0; i < 123; ++i)
+				bias[i] = 1;
 		}
 		public void WriteGenes(string filePath) //example: "..//..//..//..//Genomes//test.txt"
 		{
 			StreamWriter theFile = new StreamWriter(filePath);
 			foreach (float gene in weight)
 				theFile.Write(gene + "\n");
+				//theFile.Write(BitConverter.ToString(BitConverter.GetBytes(gene)));
 			foreach (float gene in bias)
 				theFile.Write(gene + "\n");
+				//theFile.Write(BitConverter.ToString(BitConverter.GetBytes(gene)));
 			theFile.Close();
 		}
         public double HandcraftedEvaluate(GameState state)
@@ -243,7 +274,9 @@ namespace OnitamaBot2
 				else
 				{
 					if (queryState.children.Count == 0)
-						queryState.score = HandcraftedEvaluate(queryState);
+						if (IsInitialised)
+							queryState.score = GeneticEvaluate(queryState, theGame.cardList);
+						else queryState.score = HandcraftedEvaluate(queryState);
 					if (indices[indices.Count - 2] == 0)
 						queryState.parent.score = queryState.score;
 					else if (queryState.Oturn % 2 == 0 && queryState.score < queryState.parent.score)
@@ -274,8 +307,10 @@ namespace OnitamaBot2
 			for (; i < 10; ++i)
 				if (state.position[i] != -1)
 					input[state.position[i]] = -1;
-			input[state.position[2]] = 5;
-			input[state.position[7]] = -5;
+			if (state.position[2] != -1)
+				input[state.position[2]] = 5;
+			if (state.position[7] != -1)
+				input[state.position[7]] = -5;
 			input[cards[state.position[10]].id + 25] = 2;
 			input[cards[state.position[11]].id + 25] = 2;
 			input[cards[state.position[12]].id + 25] = (short)(state.Oturn % 2 == 0 ? 1 : -1);
@@ -286,25 +321,25 @@ namespace OnitamaBot2
 			for (i = 0; i < 41; ++i)
 			{
 				layerA[i] = bias[i];
-				//layerA[i] = 0;
 				for (int j = 0; j < 41; ++j)
 					layerA[i] += input[j] * weight[i * 41 + j];
+				layerA[i] = Math.Tanh(layerA[i] / 13);
 			}
 			//calculate the first node of intermediary layer B
 			for (i = 0; i < 41; ++i)
 			{
 				layerB[i] = bias[41 + i];
-				//layerB[i] = 0;
 				for (int j = 0; j < 41; ++j)
 					layerB[i] += layerA[j] * weight[1681 + i * 41 + j];
+				layerB[i] = Math.Tanh(layerB[i] / 20);
 			}
 			//calculate the first node of intermediary layer C
 			for (i = 0; i < 41; ++i)
 			{
 				layerC[i] = bias[82 + i];
-				//layerC[i] = 0;
 				for (int j = 0; j < 41; ++j)
 					layerC[i] += layerB[j] * weight[3362 + i * 41 + j];
+				layerC[i] = Math.Tanh(layerC[i] / 20);
 			}
 			//calculate the output node
 			double result = 0;
