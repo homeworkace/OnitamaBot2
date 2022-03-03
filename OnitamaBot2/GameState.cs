@@ -353,5 +353,29 @@ namespace OnitamaBot2
 			}
 			return result;
 		}
+
+		public void Evolve(Evaluator target, double weight, float noise = 0.25f)
+        {
+			int i = 0;
+			weight /= 5;
+			for (; i < 1681; ++i)
+            {
+				this.weight[i] += (float)((target.weight[i] - this.weight[i]) * Math.Tanh(weight * (Random.Shared.NextSingle() * 0.5245253083117 + 0.75)));
+				this.weight[i] += Random.Shared.NextSingle() * 2 * noise - noise;
+				if (this.weight[i] > 10)
+					this.weight[i] = 10;
+				else if (this.weight[i] < -10)
+					this.weight[i] = -10;
+			}
+			for (i = 0; i < 123; ++i)
+			{
+				bias[i] += (float)((target.bias[i] - bias[i]) * Math.Tanh(weight * (Random.Shared.NextSingle() * 0.5245253083117 + 0.75)));
+				bias[i] += Random.Shared.NextSingle() * 2 * noise - noise;
+				if (bias[i] > 100)
+					bias[i] = 100;
+				else if (bias[i] < -100)
+					bias[i] = -100;
+			}
+        }
 	}
 }

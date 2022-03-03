@@ -1,9 +1,8 @@
-﻿1. Tournament system of 100 rounds per generation.
-2. Evolve the loser to think more similarly to the winner, with random fluctuations.
-3. Not all 1000-pointers are made equal.
+﻿1. Not all 1000-pointers are made equal.
+2. Multithreading to run games simultaneously.
+3. Experiment with console backspacing to create a less cluttered UI.
 
 - Write detailed priorities as the next steps become clearer.
-- Multithreading to run games simultaneously.
 - Introduce random challenger on 50th, 150th, 250th... generation, and random winner from older generations on 100th, 200th, 300th... generation.
 - Test it against other Onitama bots online, and against the final boss... ME.
 - It's report time... :L

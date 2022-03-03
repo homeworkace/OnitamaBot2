@@ -1,24 +1,86 @@
 ﻿using OnitamaBot2;
 
 Training();
+//PassAndPlay(); //Cobra, Monkey, Goose, Boar, Rabbit
+/*Evaluator botA = new();
+botA.Initialise("..//..//..//..//Genomes//testX.txt");
+Evaluator botB = new();
+botB.Initialise("..//..//..//..//Genomes//testO.txt");
+botB.Evolve(botA, 5);
+botB.WriteGenes("..//..//..//..//Genomes//DemonSpawn.txt");*/
 
 void PassAndPlay()
 {
 	Game theGame = new();
-	theGame.NewGame(false, Array.Empty<Card>());
+	theGame.NewGame(new Evaluator(), null, Array.Empty<Card>());
 	theGame.TheGame();
 }
 void Training()
 {
-	Game theGame = new();
-	theGame.NewGame(true, new[] { new Card(0), new Card(1), new Card(2), new Card(3), new Card(4) });
-	theGame.botX.Initialise("..//..//..//..//Genomes//testX.txt");
-	//theGame.botX.Initialise();
-	//theGame.botX.WriteGenes("..//..//..//..//Genomes//testX.txt");
-	theGame.botO.Initialise("..//..//..//..//Genomes//testO.txt");
-	//theGame.botO.Initialise();
-	//theGame.botO.WriteGenes("..//..//..//..//Genomes//testO.txt");
-	theGame.TheGame();
+	double generationScore = 0;
+	float roundScore = 0;
+	Evaluator botA = new();
+	botA.Initialise("..//..//..//..//Genomes//testX.txt");
+	Evaluator botB = new();
+	botB.Initialise("..//..//..//..//Genomes//testO.txt");
+
+	for (int generation = 0; generation < 3; generation++)
+	{
+		for (int i = 0; i < 50; ++i)
+		{
+			//Shuffle the cards first
+			int[] cardNumbers = new int[5];
+			cardNumbers[0] = Random.Shared.Next(16);
+			cardNumbers[1] = Random.Shared.Next(16);
+			while (cardNumbers[1] == cardNumbers[0])
+				cardNumbers[1] = Random.Shared.Next(16);
+			cardNumbers[2] = Random.Shared.Next(16);
+			while (cardNumbers[2] == cardNumbers[0] || cardNumbers[2] == cardNumbers[1])
+				cardNumbers[2] = Random.Shared.Next(16);
+			cardNumbers[3] = Random.Shared.Next(16);
+			while (cardNumbers[3] == cardNumbers[0] || cardNumbers[3] == cardNumbers[1] || cardNumbers[3] == cardNumbers[2])
+				cardNumbers[3] = Random.Shared.Next(16);
+			cardNumbers[4] = Random.Shared.Next(16);
+			while (cardNumbers[4] == cardNumbers[0] || cardNumbers[4] == cardNumbers[1] || cardNumbers[4] == cardNumbers[2] || cardNumbers[4] == cardNumbers[3])
+				cardNumbers[4] = Random.Shared.Next(16);
+
+			//1st round
+			Game theGame = new();
+			theGame.NewGame(botA, botB, new[] { new Card((short)cardNumbers[0]), new Card((short)cardNumbers[1]), new Card((short)cardNumbers[2]), new Card((short)cardNumbers[3]), new Card((short)cardNumbers[4]) });
+			roundScore = theGame.TheGame();
+			generationScore += roundScore;
+			Console.WriteLine("Round " + (1 + i * 2) + ": " + roundScore + ", total score: " + generationScore);
+
+			//2nd round - same setup, but sides are changed
+			theGame = new();
+			theGame.NewGame(botB, botA, new[] { new Card((short)cardNumbers[0]), new Card((short)cardNumbers[1]), new Card((short)cardNumbers[2]), new Card((short)cardNumbers[3]), new Card((short)cardNumbers[4]) });
+			roundScore = theGame.TheGame();
+			generationScore -= roundScore;
+			Console.WriteLine("Round " + (2 + i * 2) + ": " + -roundScore + ", total score: " + generationScore);
+
+			/*if (i % 5 == 4)
+			{
+				//Console.Write("State of the game at move " + currentState.Oturn + ". Type \"0\" to quit, anything else to continue: ");
+				Console.Write("Type \"0\" to quit, anything else to continue: ");
+				if (Console.ReadLine() == "0")
+					break;
+			}*/
+		}
+
+		//Generation done - evolve the loser
+		if (generationScore == 0)
+			return;
+		else if (generationScore > 0)
+		{
+			botB.Evolve(botA, Math.Abs(generationScore));
+			botB.WriteGenes("..//..//..//..//Genomes//" + (generation + 1) + "_A.txt");
+		}
+		else
+		{
+			botA.Evolve(botB, Math.Abs(generationScore));
+			botA.WriteGenes("..//..//..//..//Genomes//" + (generation + 1) + "_B.txt");
+		}
+	}
 }
 
 /*Evaluator theBot = new();
@@ -183,7 +245,7 @@ class Game
 		}
 		else return 0;
 	}
-	public GameState NewGame(bool trainingMode, Card[] presetCards)
+	public GameState NewGame(Evaluator botX, Evaluator ?botO, Card[] presetCards)
 	{
 		int choice = 0;
 		if (presetCards.Length == 0)
@@ -218,13 +280,11 @@ class Game
 		pos.position[14] = 4;
 		currentState = pos;
 
-		botX = new Evaluator();
+		this.botX = botX;
 		botX.theGame = this;
-		if (trainingMode)
-        {
-			botO = new Evaluator();
+		this.botO = botO;
+		if (botO is not null)
 			botO.theGame = this;
-		}
 		CheckMoves(currentState);
 		PrintBoard(currentState);
 		return currentState;
@@ -269,11 +329,11 @@ class Game
 		}
 		Console.Write("_______\n");
 	}
-	public void TheGame()
+	public float TheGame()
 	{
 		short theMove = 1;
 
-		while (CheckWin(currentState) == 0)
+		while (CheckWin(currentState) == 0 && currentState.Oturn < 200)
 		{
 			while (jobQueue.Peek().Oturn - currentState.Oturn < 4)
 			{
@@ -301,13 +361,13 @@ class Game
 				//if botO exists, training mode is enabled. we dont need any player involvement
 				PrintBoard(currentState);
 				Console.WriteLine("State of the game at move " + currentState.Oturn);
-				if (currentState.Oturn % 10 == 0)
+				/*if (currentState.Oturn % 10 == 0)
 				{
 					//Console.Write("State of the game at move " + currentState.Oturn + ". Type \"0\" to quit, anything else to continue: ");
 					Console.Write("Type \"0\" to quit, anything else to continue: ");
 					if (Console.ReadLine() == "0")
 						break;
-				}
+				}*/
 				theMove = 0;
 				for (int i = 1; i < currentState.children.Count; ++i)
 				{
@@ -455,7 +515,13 @@ class Game
 			}
 		}
 		PrintBoard(currentState);
-		Console.Write((CheckWin(currentState) > 0 ? "X" : "O") + " wins at turn " + currentState.Oturn);
+		if (CheckWin(currentState) == 0)
+		{
+			Console.Write("Draw!\n");
+			return 0;
+		}
+		else Console.WriteLine((CheckWin(currentState) > 0 ? "X" : "O") + " wins at turn " + currentState.Oturn);
+		return (float)CheckWin(currentState) / (currentState.Oturn / 2);
 	}
 	/*void TrainingGame(Card[] startingCards, Evaluator botX, Evaluator botO)
     {
