@@ -1,8 +1,9 @@
-﻿1. Not all 1000-pointers are made equal.
-2. Multithreading to run games simultaneously.
-3. Experiment with console backspacing to create a less cluttered UI.
+﻿1. Multithreading to run games simultaneously.
+2. Exhibition match.
+3. Handle, print diagnostics and pass on the empty queue exception to the main thread.
 
 - Write detailed priorities as the next steps become clearer.
+- Rethink how the UI works now that the output does refresh.
 - Introduce random challenger on 50th, 150th, 250th... generation, and random winner from older generations on 100th, 200th, 300th... generation.
 - Test it against other Onitama bots online, and against the final boss... ME.
 - It's report time... :L

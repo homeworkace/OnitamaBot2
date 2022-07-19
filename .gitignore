@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/Genomes/Ang Mo Kio
+/Genomes/Bedok
+/Genomes/Clementi
+/Genomes/Downtown
+/Genomes/10for10.txt
+/Genomes/Exhibitions
